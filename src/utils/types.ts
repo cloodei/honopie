@@ -7,6 +7,14 @@ type JwtPayload = {
 }
 type Env = {
   HYPERDRIVE: Hyperdrive
+
+  MQTT_CLUSTER_URL: string
+  MQTT_USERNAME: string
+  MQTT_PASSWORD: string
+
+  JWT_SECRET: string
+  JWT_EXPIRATION_NUM: number
+  REFRESH_EXPIRATION_NUM: number
 }
 type Variables = JwtVariables<JwtPayload>
 

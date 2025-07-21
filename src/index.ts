@@ -1,13 +1,10 @@
+import { jwt } from "hono/jwt"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { csrf } from "hono/csrf"
-import { jwt, JwtVariables } from "hono/jwt"
-import { Hyperdrive } from "@cloudflare/workers-types"
+import { Env, Variables } from "./utils/types"
+import { login } from "./auth"
 
-type Env = {
-  HYPERDRIVE: Hyperdrive
-}
-type Variables = JwtVariables
 const app = new Hono<{ Bindings: Env, Variables: Variables }>()
 
 app.use(cors({
@@ -18,16 +15,17 @@ app.use(cors({
 app.use(csrf({
   origin: ["http://localhost:5173", "https://flare.nguyenan-study.workers.dev"]
 }))
-app.use(jwt({
-  secret: "secret",
-  cookie: {
-    key: "secret",
-    
-  }
-}))
+app.use("/readings", async (c, next) => {
+  const jwtMiddleware = jwt({
+    secret: c.env.JWT_SECRET
+  })
+  return jwtMiddleware(c, next)
+})
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
+app.post('/login', login)
+
+app.get('/readings', (c) => {
+  return c.json({ message: 'Hello Hono!' })
 })
 
 export default app
