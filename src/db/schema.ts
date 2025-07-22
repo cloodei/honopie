@@ -1,4 +1,4 @@
-import { index, pgTable, real, serial, timestamp, uuid, varchar } from "drizzle-orm/pg-core"
+import { index, pgTable, real, serial, timestamp, varchar } from "drizzle-orm/pg-core"
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -10,11 +10,11 @@ export const usersTable = pgTable("users", {
 
 export const refreshTokensTable = pgTable("refresh_tokens", {
   id: serial("id").primaryKey(),
-  user_id: serial("user_id").notNull().references(() => usersTable.id),
+  user_id: serial("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   token_hash: varchar({ length: 255 }).notNull().unique(),
   created_at: timestamp({ withTimezone: true, mode: "date" }).defaultNow().notNull()
 }, table => [
-  index("user_index").on(table.user_id)
+  index("user_index").on(table.user_id),
 ])
 
 export const readingsTable = pgTable("readings", {

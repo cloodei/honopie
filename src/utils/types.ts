@@ -2,8 +2,7 @@ import { Hyperdrive } from "@cloudflare/workers-types"
 import { JwtVariables } from "hono/jwt"
 
 type JwtPayload = {
-  id: string
-  username: string
+  id: number
 }
 type Env = {
   HYPERDRIVE: Hyperdrive
@@ -15,6 +14,7 @@ type Env = {
   JWT_SECRET: string
   JWT_EXPIRATION_NUM: number
   REFRESH_EXPIRATION_NUM: number
+  REFRESH_HASH_SECRET: string
 }
 type Variables = JwtVariables<JwtPayload>
 
