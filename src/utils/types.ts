@@ -5,6 +5,7 @@ type JwtPayload = {
   id: number
 }
 type Env = {
+  DATABASE_URL: string
   HYPERDRIVE: Hyperdrive
 
   MQTT_CLUSTER_URL: string

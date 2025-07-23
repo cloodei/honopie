@@ -3,21 +3,21 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "start": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.44.3",
     "hono": "^4.8.5",
     "mqtt": "^5.13.3",
     "postgres": "^3.4.7"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250719.0",
-    "@types/bcrypt": "^6.0.0",
+    "@cloudflare/workers-types": "^4.20250722.0",
     "bun-types": "^1.2.19",
     "drizzle-kit": "^0.31.4",
-    "wrangler": "^4.25.0"
+    "wrangler": "^4.25.1"
   }
 }

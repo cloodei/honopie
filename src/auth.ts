@@ -1,10 +1,10 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
+import postgres from "postgres";
 import { eq } from "drizzle-orm";
 import { Context } from "hono";
-import { drizzle } from "drizzle-orm/bun-sql";
+import { drizzle } from "drizzle-orm/postgres-js";
 import { createHash } from "crypto";
 import { sign, verify } from "hono/jwt";
-import { PostgresError } from "postgres";
 import { JwtTokenExpired } from "hono/utils/jwt/types";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { Env, Variables } from "./utils/types";
@@ -47,10 +47,11 @@ export async function login(c: Context<{ Bindings: Env, Variables: Variables }>)
     maxAge: c.env.REFRESH_EXPIRATION_NUM
   })
 
-  db.insert(refreshTokensTable).values({
+  await db.insert(refreshTokensTable).values({
     user_id: user.id,
     token_hash: refresh_hash
   })
+  await db.$client.end()
 
   return c.json({ access_token, user_id: user.id })
 }
@@ -61,13 +62,15 @@ export async function logout(c: Context<{ Bindings: Env, Variables: Variables }>
     return c.text("Invalid refresh token", 400)
 
   const db = drizzle(c.env.HYPERDRIVE.connectionString)
-  db.delete(refreshTokensTable)
+  await db.delete(refreshTokensTable)
     .where(eq(
       refreshTokensTable.token_hash,
       createHash("sha256").update(c.env.REFRESH_HASH_SECRET + rftoken).digest("hex")
     ))
-
+    
+  await db.$client.end()
   deleteCookie(c, "refresh_token")
+
   return c.text("OK", 200)
 }
 
@@ -102,17 +105,19 @@ export async function signUp(c: Context<{ Bindings: Env, Variables: Variables }>
     })    
     
     const refresh_hash = createHash("sha256").update(c.env.REFRESH_HASH_SECRET + refresh_payload).digest("hex")
-    db.insert(refreshTokensTable).values({
+    await db.insert(refreshTokensTable).values({
       user_id: user.id,
       token_hash: refresh_hash
     })
 
+    await db.$client.end()
     return c.json({ access_token, user_id: user.id }, 201)
   }
   catch (error) {
     console.error(error)
+    await db.$client.end()
     
-    if (error instanceof PostgresError && error.code === "23505")
+    if (error instanceof postgres.PostgresError && error.code === "23505")
       return c.text("User already exists", 409)
     
     return c.text("Unable to create user", 406)
@@ -125,8 +130,9 @@ export async function refresh(c: Context<{ Bindings: Env, Variables: Variables }
     return c.text("Invalid refresh token", 400)
 
   const now = new Date()
+  const db = drizzle(c.env.HYPERDRIVE.connectionString)
+
   try {
-    const db = drizzle(c.env.HYPERDRIVE.connectionString)
     const [payload] = await db.select({
       id: refreshTokensTable.id,
       user_id: refreshTokensTable.user_id,
@@ -157,17 +163,20 @@ export async function refresh(c: Context<{ Bindings: Env, Variables: Variables }
       maxAge: c.env.REFRESH_EXPIRATION_NUM
     })
 
-    db.update(refreshTokensTable)
+    await db.update(refreshTokensTable)
       .set({
         token_hash: refresh_hash,
         created_at: now
       })
       .where(eq(refreshTokensTable.id, payload.id))
+    await db.$client.end()
 
     return c.json({ access_token, user_id: payload.user_id })
   }
   catch (error) {
     console.error(error)
+    await db.$client.end()
+    
     return c.text("Invalid refresh token", 400)
   }
 }
@@ -179,14 +188,14 @@ export async function verifyRefresh(c: Context<{ Bindings: Env, Variables: Varia
 
   try {
     const payload = await verify(token[1], c.env.JWT_SECRET)
-    return c.json({ user_id: payload.id })
+    return c.json({ access_token: token[1], user_id: payload.id })
   }
   catch (error) {
     console.error(error)
     if (!(error instanceof JwtTokenExpired))
       return c.text("Invalid access token", 401)
 
-    return refresh(c)
+    return await refresh(c)
   }
 }
 
@@ -197,7 +206,7 @@ export async function verifyUser(c: Context<{ Bindings: Env, Variables: Variable
 
   try {
     const payload = await verify(token[1], c.env.JWT_SECRET)
-    return c.json({ user_id: payload.id })
+    return c.json({ access_token: token[1], user_id: payload.id })
   }
   catch (error) {
     console.error(error)

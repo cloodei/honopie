@@ -2,7 +2,7 @@ import { jwt } from "hono/jwt"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { csrf } from "hono/csrf"
-import { drizzle } from "drizzle-orm/bun-sql"
+import { drizzle } from "drizzle-orm/postgres-js"
 import { and, eq, gte, sql } from "drizzle-orm"
 import { readingsTable } from "./db/schema"
 import { Env, Variables } from "./utils/types"
@@ -23,6 +23,16 @@ app.use("/readings", async (c, next) => {
     secret: c.env.JWT_SECRET
   })
   return jwtMiddleware(c, next)
+})
+
+app.get("/test", async (c) => {
+  console.log("HYPERDRIVE:", c.env.HYPERDRIVE.connectionString)
+  console.log("DATABASE_URL:", c.env.DATABASE_URL, " |  ENV:", process.env.DATABASE_URL)
+  console.log("MQTT_CLUSTER_URL:", c.env.MQTT_CLUSTER_URL, " |  ENV:", process.env.MQTT_CLUSTER_URL)
+  console.log("MQTT_USERNAME:", c.env.MQTT_USERNAME, " |  ENV:", process.env.MQTT_USERNAME)
+  console.log("MQTT_PASSWORD:", c.env.MQTT_PASSWORD, " |  ENV:", process.env.MQTT_PASSWORD)
+
+  return c.text("OK", 200)
 })
 
 app.post("/login", auth.login)
